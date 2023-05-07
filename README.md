@@ -26,3 +26,11 @@ Route: Lists and shows artworks by each artist with information
 
 Users can login 
 Can add artworks to a list of favorites.
+
+Schema image: 
+
+![QuickDBD-export (3)](https://user-images.githubusercontent.com/116580308/236690854-61418f50-c788-4549-a3e8-c09a6f5c2098.png)
+
+API: Artsy
+https://developers.artsy.net/v1/
+
