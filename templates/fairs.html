@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ fair.name }}</h1>
+  <p>{{ fair.about }}</p>
+  <p>{{ fair.start_date.strftime('%B %d, %Y') }} - {{ fair.end_date.strftime('%B %d, %Y') }}</p>
+
+  <h2>Participating Galleries</h2>
+  {% for gallery in galleries %}
+    <div class="gallery">
+      <h3><a href="/galleries/{{ gallery.id }}">{{ gallery.name }}</a></h3>
+      <a href="/galleries/{{ gallery.id }}">
+        <img src="{{ gallery.show._links.thumbnail.href }}" alt="{{ gallery.show.name }}">
+      </a>
+    </div>
+    
+  {% endfor %}
+{% endblock %}
