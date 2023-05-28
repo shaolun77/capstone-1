@@ -300,7 +300,7 @@ def homepage():
     db.session.commit()
 
     # Pass the fair data to the template for rendering
-    return render_template('home.html', fairs=fairs)
+    return render_template('homepage.html', fairs=fairs)
 
     # if g.user:
     #     following_ids = [f.id for f in g.user.following] + [g.user.id]
