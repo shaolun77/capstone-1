@@ -112,7 +112,7 @@ def get_fairs():
 # Set the query parameters, including the status and size (number of results)
     params = {
         "status": "upcoming",  # Filter by upcoming fairs
-        "size": 20,  # Number of fairs to retrieve
+        "size": 10,  # Number of fairs to retrieve
         # Sort by start date in ascending order (earliest first)
         "sort": "start_at"
     }
@@ -141,3 +141,41 @@ def get_fairs():
     else:
         # Request was not successful, handle the error
         print(f"Error: {response.status_code} - {response.text}")
+
+
+def art_fair(fair_id):
+    """Show specific art fair:
+
+    - Retrieve fair information from the Artsy API using the fair_id.
+    - List the galleries participating in the art fair.
+    """
+
+    # Construct the fair API URL with the fair_id
+    fair_url = f"https://api.artsy.net/api/fairs/{fair_id}"
+    headers = {
+        "Accept": "application/vnd.artsy-v2+json",
+        "X-Xapp-Token": API_KEY
+    }
+
+    # Make the fair API request
+    fair_response = requests.get(fair_url, headers=headers)
+
+    if fair_response.status_code == 200:
+        fair_data = fair_response.json()
+        fair = fair_data
+
+        # Construct the gallery API URL with the fair_id
+        gallery_url = f"https://api.artsy.net/api/shows?fair_id={fair_id}"
+
+        # Make the gallery API request
+        gallery_response = requests.get(gallery_url, headers=headers)
+
+        if gallery_response.status_code == 200:
+            gallery_data = gallery_response.json()
+            galleries = gallery_data["_embedded"]["shows"]
+
+            return galleries
+        else:
+            return "Failed to retrieve gallery information."
+    else:
+        return "Failed to retrieve fair information."

@@ -6,7 +6,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, UserEditForm, LoginForm
-from models import db, connect_db, User, Fair, Gallery, Favorite
+from models import db, connect_db, User, Fair, Gallery
 
 CURR_USER_KEY = "curr_user"
 
@@ -22,6 +22,11 @@ app.config['SQLALCHEMY_ECHO'] = False
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
 toolbar = DebugToolbarExtension(app)
+
+db.init_app(app)
+
+with app.app_context():
+    db.create_all()
 
 connect_db(app)
 
@@ -133,8 +138,8 @@ def users_show(user_id):
 
     # need to show list of favorited artworks
 
-    likes = [message.id for message in user.likes]
-    return render_template('users/show.html', user=user, messages=messages, likes=likes)
+    # likes = [message.id for message in user.likes]
+    return render_template('users/show.html', user=user)
 
 
 # @app.route('/users/<int:user_id>/likes', methods=["GET"])
@@ -213,39 +218,31 @@ def delete_user():
 
     return redirect("/signup")
 
-##############################################################################
-# Art Fair and Gallery pages
-
-
-@app.route('/fairs/<int:fair_id>')
-def art_fair(fair_id):
-    """Show specific art fair:
-
-    - List the galleries participating in the art fair.
-    """
-
-    fair = Fair.query.get_or_404(fair_id)
-    galleries = fair.galleries
-
-    return render_template('fairs.html', fair=fair, galleries=galleries)
-
-
-@app.route('/galleries/<int:gallery_id>')
-def art_gallery(gallery_id):
-    """Show specific gallery:
-
-    - List the artworks that the gallery is showing.
-    - Allow users to favorite them.
-    """
-
-    gallery = Gallery.query.get_or_404(gallery_id)
-    artworks = gallery.artworks
-
-    return render_template('galleries.html', gallery=gallery, artworks=artworks)
-
 
 ##############################################################################
 # Homepage and error pages
+
+# Set your Client ID and Client Secret
+client_id = 'd23126726160b1141ff8'
+client_secret = '5e636238807b6ade106aa3738d75e56d'
+
+# Construct the API request URL
+token_url = 'https://api.artsy.net/api/tokens/xapp_token'
+# api_url = 'https://api.artsy.net/api/artists'
+
+# Set the request payload with client_id and client_secret
+payload = {
+    'client_id': client_id,
+    'client_secret': client_secret
+}
+
+# Send the API request to obtain the access token
+response = requests.post(token_url, data=payload)
+
+# Parse the JSON response
+token_data = response.json()
+
+API_KEY = token_data['token']
 
 
 def get_fairs():
@@ -273,6 +270,13 @@ def get_fairs():
 
     # Extract the list of fairs from the response
         fairs = data["_embedded"]["fairs"]
+        # print(fairs)
+
+    # Return the list of fairs
+        return fairs
+
+    # Return an empty list if the request was not successful
+    return []
 
 
 @app.route('/')
@@ -286,18 +290,21 @@ def homepage():
     """
     fairs = get_fairs()
 
-# Store the fair data in the database (using SQLAlchemy)
-    for fair_data in fairs:
-        fair = Fair(
-            fair_id=fair_data['id'],
-            fair_name=fair_data['name'],
-            fair_about=fair_data['about'],
-            fair_start_date=fair_data['start_at'],
-            fair_end_date=fair_data['end_at']
-        )
-        db.session.add(fair)
+    # for fair in fairs:
+    #     fair['id'] = str(fair['id'])
 
-    db.session.commit()
+# Store the fair data in the database (using SQLAlchemy)
+    # for fair_data in fairs:
+    #     fair = Fair(
+    #         fair_id=fair_data["id"],
+    #         fair_name=fair_data["name"],
+    #         fair_about=fair_data["about"],
+    #         fair_start_date=fair_data["start_at"],
+    #         fair_end_date=fair_data["end_at"]
+    #     )
+    #     db.session.add(fair)
+
+    # db.session.commit()
 
     # Pass the fair data to the template for rendering
     return render_template('homepage.html', fairs=fairs)
@@ -325,6 +332,80 @@ def page_not_found(e):
     """404 NOT FOUND page."""
 
     return render_template('404.html'), 404
+
+##############################################################################
+# Art Fair and Gallery pages
+
+
+@app.route('/fairs/<string:fair_id>')
+def art_fair(fair_id):
+    """Show specific art fair:
+
+    - Retrieve fair information from the Artsy API using the fair_id.
+    - List the galleries participating in the art fair.
+    """
+
+    # Construct the fair API URL with the fair_id
+    fair_url = f"https://api.artsy.net/api/fairs/{fair_id}"
+    headers = {
+        "Accept": "application/vnd.artsy-v2+json",
+        "X-Xapp-Token": API_KEY
+    }
+
+    # Make the fair API request
+    fair_response = requests.get(fair_url, headers=headers)
+
+    if fair_response.status_code == 200:
+        fair_data = fair_response.json()
+        fair = fair_data
+
+        # Construct the gallery API URL with the fair_id
+        gallery_url = f"https://api.artsy.net/api/shows?fair_id={fair_id}"
+
+        # Make the gallery API request
+        gallery_response = requests.get(gallery_url, headers=headers)
+
+        if gallery_response.status_code == 200:
+            gallery_data = gallery_response.json()
+            galleries = gallery_data["_embedded"]["shows"]
+
+            return render_template('fairs.html', fair=fair, galleries=galleries)
+        else:
+            return "Failed to retrieve gallery information."
+    else:
+        return "Failed to retrieve fair information."
+
+
+@app.route('/galleries/<int:gallery_id>')
+def art_gallery(gallery_id):
+    """Show specific gallery:
+
+    - List the artworks that the gallery is showing.
+    - Allow users to favorite them.
+    """
+
+    # Construct the gallery API URL with the gallery_id
+    gallery_url = f"https://api.artsy.net/api/shows/{gallery_id}"
+
+    # Make the gallery API request
+    gallery_response = requests.get(gallery_url, headers=headers)
+
+    if gallery_response.status_code == 200:
+        gallery_data = gallery_response.json()
+        gallery = gallery_data
+
+        # Extract the artworks brought by the gallery
+        artworks_url = gallery_data['_links']['artworks']['href']
+        artworks_response = requests.get(artworks_url, headers=headers)
+        if artworks_response.status_code == 200:
+            artworks_data = artworks_response.json()
+            artworks = artworks_data['_embedded']['artworks']
+        else:
+            artworks = []
+
+        return render_template('galleries.html', gallery=gallery, artworks=artworks)
+    else:
+        return "Failed to retrieve gallery information."
 
 
 ##############################################################################

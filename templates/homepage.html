@@ -4,10 +4,10 @@
   
   {% for fair in fairs %}
     <div class="fair">
-      <h2><a href="{{ url_for('art_fair', fair_id=fair.id) }}">{{ fair.name }}</a></h2>
-      <p>{{ fair.about }}</p>
-      <p>Start Date: {{ fair.start_date }}</p>
-      <p>End Date: {{ fair.end_date }}</p>
+      <h2><a href="/fairs/{{ fair['id'] }}">{{ fair['name'] }}</a></h2>
+      <p>{{ fair['about'] }}</p>
+      <p>Start Date: {{ fair['start_at'] }}</p>
+      <p>End Date: {{ fair['end_at'] }}</p>
     </div>
   {% endfor %}
 {% endblock %}
@@ -18,3 +18,5 @@
   test out different date format:
   <p>{{ fair.start_date.strftime('%B %d') }} - {{ fair.end_date.strftime('%B %d, %Y') }}</p>  
 -->
+
+

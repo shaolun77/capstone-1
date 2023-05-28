@@ -1,18 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>{{ gallery.name }}</h1>
+  <h1>{{ gallery['partner']['name'] }}</h1>
+  <p>{{ gallery['description'] }}</p>
+  
   <h2>Artworks</h2>
-  <p>{{ gallery.show.description }}</p>
-
-  <h2>Artworks</h2>
-  <div class="artworks">
-    {% for artwork in gallery.show.artworks %}
-      <div class="artwork">
-        <h3>{{ artwork.title }}</h3>
-        <img src="{{ artwork._links.thumbnail.href }}" alt="{{ artwork.title }}">
-        <p>{{ artwork.description }}</p>
-      </div>
-    {% endfor %}
-  </div>
+  {% for artwork in artworks %}
+    <div class="artwork">
+      <h3>{{ artwork['title'] }}</h3>
+      {% if 'thumbnail' in artwork['_links'] %}
+        <img src="{{ artwork['_links']['thumbnail']['href'] }}" alt="{{ artwork['title'] }}">
+      {% endif %}
+    </div>
+  {% endfor %}
 {% endblock %}

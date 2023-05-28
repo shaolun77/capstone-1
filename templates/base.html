@@ -23,14 +23,14 @@
     <div class="navbar-header">
       <a href="/" class="navbar-brand">
         <img src="/static/images/warbler-logo.png" alt="logo">
-        <span>Warbler</span>
+        <span>Art Fair Assistant</span>
       </a>
     </div>
     <ul class="nav navbar-nav navbar-right">
       {% if request.endpoint != None %}
       <li>
         <form class="navbar-form navbar-right" action="/users">
-          <input name="q" class="form-control" placeholder="Search Warbler" id="search">
+          <input name="q" class="form-control" placeholder="Search" id="search">
           <button class="btn btn-default">
             <span class="fa fa-search"></span>
           </button>
@@ -46,7 +46,6 @@
           <img src="{{ g.user.image_url }}" alt="{{ g.user.username }}">
         </a>
       </li>
-      <li><a href="/messages/new">New Message</a></li>
       <li><a href="/logout">Log out</a></li>
       {% endif %}
     </ul>
