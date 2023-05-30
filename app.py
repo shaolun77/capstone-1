@@ -334,7 +334,7 @@ def page_not_found(e):
     return render_template('404.html'), 404
 
 ##############################################################################
-# Art Fair and Gallery pages
+# Art Fair and SHow pages
 
 
 @app.route('/fairs/<string:fair_id>')
@@ -376,44 +376,98 @@ def art_fair(fair_id):
         return "Failed to retrieve fair information."
 
 
-@app.route('/galleries/<int:gallery_id>')
-def art_gallery(gallery_id):
-    """Show specific gallery:
+@app.route('/show/<string:show_id>')
+def show(show_id):
 
-    - List the artworks that the gallery is showing.
-    - Allow users to favorite them.
-    """
+    show_url = f"https://api.artsy.net/api/shows/{show_id}"
+    headers = {
+        "Accept": "application/vnd.artsy-v2+json",
+        "X-Xapp-Token": API_KEY
+    }
 
-    # Construct the gallery API URL with the gallery_id
-    gallery_url = f"https://api.artsy.net/api/shows/{gallery_id}"
+    # Make the show API request
+    show_response = requests.get(show_url, headers=headers)
 
-    # Make the gallery API request
-    gallery_response = requests.get(gallery_url, headers=headers)
+    if show_response.status_code == 200:
+        show_data = show_response.json()
+        show = show_data
 
-    if gallery_response.status_code == 200:
-        gallery_data = gallery_response.json()
-        gallery = gallery_data
-
-        # Extract the artworks brought by the gallery
-        artworks_url = gallery_data['_links']['artworks']['href']
+        # Retrieve the artworks associated with the show
+        artworks_url = show_data["_links"]["artworks"]["href"]
         artworks_response = requests.get(artworks_url, headers=headers)
+
         if artworks_response.status_code == 200:
             artworks_data = artworks_response.json()
-            artworks = artworks_data['_embedded']['artworks']
+            artworks = artworks_data["_embedded"]["artworks"]
+
+            return render_template('show.html', show=show, artworks=artworks)
         else:
-            artworks = []
-
-        return render_template('galleries.html', gallery=gallery, artworks=artworks)
+            return "Failed to retrieve artworks for the show."
     else:
-        return "Failed to retrieve gallery information."
+        return "Failed to retrieve show information."
 
+    # @app.route('/galleries/<string:gallery_id>')
+    # def art_gallery(gallery_id):
+    #     """Show specific gallery:
 
-##############################################################################
-# Turn off all caching in Flask
-#   (useful for dev; in production, this kind of stuff is typically
-#   handled elsewhere)
-#
-# https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
+    #     - List the artworks that the gallery is showing.
+    #     - Allow users to favorite them.
+    #     """
+
+    #     # Construct the partner API URL
+    #     partner_url = f"https://api.artsy.net/api/partners/{gallery_id}"
+    #     headers = {
+    #         "Accept": "application/vnd.artsy-v2+json",
+    #         "X-Xapp-Token": API_KEY
+    #     }
+    #     # Make the partner API request
+    #     partner_response = requests.get(partner_url, headers=headers)
+
+    #     if partner_response.status_code == 200:
+    #         partner_data = partner_response.json()
+    #         partner = partner_data
+
+    #         print(partner)
+
+    #         # Extract the fair ID from the shows information
+    #         shows_url = partner['_links']['shows']['href']
+    #         shows_response = requests.get(shows_url, headers=headers)
+
+    #         if shows_response.status_code == 200:
+    #             shows_data = shows_response.json()
+    #             first_show = shows_data['_embedded']['shows'][0]
+    #             fair_id = first_show['_links']['fair']['href'].split('/')[-1]
+
+    #             # Construct the shows API URL with the fair_id and partner_id
+    #             shows_url = f"https://api.artsy.net/api/shows?fair_id={fair_id}&partner_id={gallery_id}"
+
+    #             # Make the shows API request
+    #             shows_response = requests.get(shows_url, headers=headers)
+
+    #             if shows_response.status_code == 200:
+    #                 shows_data = shows_response.json()
+    #                 shows = shows_data['_embedded']['shows']
+
+    #                 print(shows)
+
+    #                 return render_template('galleries.html', partner=partner, shows=shows)
+    #             else:
+    #                 # Handle error when retrieving show information
+    #                 return "Failed to retrieve show information."
+    #         else:
+    #             # Handle error when retrieving shows information
+    #             return "Failed to retrieve shows information."
+    #     else:
+    #         # Handle error when retrieving partner information
+    #         return "Failed to retrieve gallery information."
+
+    ##############################################################################
+    # Turn off all caching in Flask
+    #   (useful for dev; in production, this kind of stuff is typically
+    #   handled elsewhere)
+    #
+    # https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
+
 
 @app.after_request
 def add_header(req):

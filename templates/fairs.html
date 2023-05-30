@@ -6,17 +6,26 @@
   <p>Start Date: {{ fair['start_at'] }}</p>
   <p>End Date: {{ fair['end_at'] }}</p>
   
+  
   <h2>Participating Galleries</h2>
   {% for gallery in galleries %}
     <div class="gallery">
+      {% set partner_id = gallery._links.partner.href.split('/')[-1] %}
+      <h3><a href="/show/{{ gallery.id }}">{{ gallery.name }}</a></h3>
+    </div>
+    
+    <!-- 
+    <div class="gallery">
       <h3><a href="/galleries/{{ gallery['id'] }}">{{ gallery['name'] }}</a></h3>
+    </div> 
+  
+  -->
 
       <!--      <a href="/galleries/{{ gallery['id'] }}">
         <img src="{{ gallery['_links']['images']['href'] }}" alt="{{ gallery['name'] }}">
-        </a>
+      
       -->
   
-    </div>
   {% endfor %}
 {% endblock %}
 

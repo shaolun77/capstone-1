@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ show['_links']['partner']['name'] }}</h1>
+  <p>{{ show.name }}</p>
+  
+  <h2>Artworks</h2>
+  {% for artwork in show['_embedded']['artworks'] %}
+    <div class="artwork">
+      <h3>{{ artwork.title }}</h3>
+      <img src="{{ artwork['_links']['thumbnail']['href'] }}" alt="{{ artwork.title }}">
+    </div>
+  {% endfor %}
+  
+{% endblock %}

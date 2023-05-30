@@ -179,3 +179,58 @@ def art_fair(fair_id):
             return "Failed to retrieve gallery information."
     else:
         return "Failed to retrieve fair information."
+
+
+def art_gallery(gallery_id):
+    """Show specific gallery:
+
+    - List the artworks that the gallery is showing.
+    - Allow users to favorite them.
+    """
+
+    # Construct the partner API URL
+    partner_url = f"https://api.artsy.net/api/partners/{gallery_id}"
+    headers = {
+        "Accept": "application/vnd.artsy-v2+json",
+        "X-Xapp-Token": API_KEY
+    }
+    # Make the partner API request
+    partner_response = requests.get(partner_url, headers=headers)
+
+    if partner_response.status_code == 200:
+        partner_data = partner_response.json()
+        partner = partner_data
+
+        print(partner)
+
+        # Extract the fair ID from the shows information
+        shows_url = partner['_links']['shows']['href']
+        shows_response = requests.get(shows_url, headers=headers)
+
+        if shows_response.status_code == 200:
+            shows_data = shows_response.json()
+            first_show = shows_data['_embedded']['shows'][0]
+            fair_id = first_show['_links']['fair']['href'].split('/')[-1]
+
+            # Construct the shows API URL with the fair_id and partner_id
+            shows_url = f"https://api.artsy.net/api/shows?fair_id={fair_id}&partner_id={gallery_id}"
+
+            # Make the shows API request
+            shows_response = requests.get(shows_url, headers=headers)
+
+            if shows_response.status_code == 200:
+                shows_data = shows_response.json()
+                shows = shows_data['_embedded']['shows']
+
+                print(shows)
+
+                return shows
+            else:
+                # Handle error when retrieving show information
+                return "Failed to retrieve show information."
+        else:
+            # Handle error when retrieving shows information
+            return "Failed to retrieve shows information."
+    else:
+        # Handle error when retrieving partner information
+        return "Failed to retrieve gallery information."
