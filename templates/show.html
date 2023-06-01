@@ -5,11 +5,20 @@
   <p>{{ show.name }}</p>
   
   <h2>Artworks</h2>
-  {% for artwork in show['_embedded']['artworks'] %}
-    <div class="artwork">
-      <h3>{{ artwork.title }}</h3>
-      <img src="{{ artwork['_links']['thumbnail']['href'] }}" alt="{{ artwork.title }}">
+  {% if artworks %}
+    <div class="artworks">
+      {% for artwork in artworks %}
+        <div class="artwork">
+          <h3>{{ artwork.title }}</h3>
+          {% if artwork.images %}
+            <img src="{{ artwork.images[0].image_url }}" alt="{{ artwork.title }}">
+          {% else %}
+            <p>No image available</p>
+          {% endif %}
+        </div>
+      {% endfor %}
     </div>
-  {% endfor %}
-  
+  {% else %}
+    <p>No artworks found for the show.</p>
+  {% endif %}
 {% endblock %}

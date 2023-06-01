@@ -234,3 +234,39 @@ def art_gallery(gallery_id):
     else:
         # Handle error when retrieving partner information
         return "Failed to retrieve gallery information."
+
+
+def show(show_id):
+    show_url = f"https://api.artsy.net/api/shows/{show_id}"
+    headers = {
+        "Accept": "application/vnd.artsy-v2+json",
+        "X-Xapp-Token": API_KEY
+    }
+
+    # Make the show API request
+    show_response = requests.get(show_url, headers=headers)
+
+    if show_response.status_code == 200:
+        show_data = show_response.json()
+        show = show_data
+
+        # Retrieve the artworks associated with the show
+        artworks_url = show_data['_links']['artworks']['href']
+        print("Artworks URL:", artworks_url)  # Check the URL
+
+        artworks_response = requests.get(artworks_url, headers=headers)
+
+        if artworks_response.status_code == 200:
+            artworks_data = artworks_response.json()
+            artworks = artworks_data['_embedded']['artworks']
+
+            if artworks:
+                print("Artworks:", artworks)  # Check the artworks data
+            else:
+                print("No artworks found for the show.")
+
+            return render_template('show.html', show=show, artworks=artworks)
+        else:
+            return "Failed to retrieve artworks for the show."
+    else:
+        return "Failed to retrieve show information."

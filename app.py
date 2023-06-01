@@ -254,7 +254,7 @@ def get_fairs():
 
 # Set the query parameters, including the status and size (number of results)
     params = {
-        "status": "upcoming",  # Filter by upcoming fairs
+        "status": "current",  # Filter by upcoming fairs
         "size": 10,  # Number of fairs to retrieve
         # Sort by start date in ascending order (earliest first)
         "sort": "start_at"
@@ -290,23 +290,6 @@ def homepage():
     """
     fairs = get_fairs()
 
-    # for fair in fairs:
-    #     fair['id'] = str(fair['id'])
-
-# Store the fair data in the database (using SQLAlchemy)
-    # for fair_data in fairs:
-    #     fair = Fair(
-    #         fair_id=fair_data["id"],
-    #         fair_name=fair_data["name"],
-    #         fair_about=fair_data["about"],
-    #         fair_start_date=fair_data["start_at"],
-    #         fair_end_date=fair_data["end_at"]
-    #     )
-    #     db.session.add(fair)
-
-    # db.session.commit()
-
-    # Pass the fair data to the template for rendering
     return render_template('homepage.html', fairs=fairs)
 
     # if g.user:
@@ -361,19 +344,33 @@ def art_fair(fair_id):
 
         # Construct the gallery API URL with the fair_id
         gallery_url = f"https://api.artsy.net/api/shows?fair_id={fair_id}"
+        galleries = []
 
-        # Make the gallery API request
-        gallery_response = requests.get(gallery_url, headers=headers)
+        while gallery_url:
+            gallery_response = requests.get(gallery_url, headers=headers)
 
-        if gallery_response.status_code == 200:
-            gallery_data = gallery_response.json()
-            galleries = gallery_data["_embedded"]["shows"]
+            if gallery_response.status_code == 200:
+                gallery_data = gallery_response.json()
+                galleries.extend(gallery_data["_embedded"]["shows"])
+                gallery_url = gallery_data["_links"]["next"]["href"] if "next" in gallery_data["_links"] else None
+            else:
+                return "Failed to retrieve gallery information."
 
-            return render_template('fairs.html', fair=fair, galleries=galleries)
-        else:
-            return "Failed to retrieve gallery information."
+        return render_template('fairs.html', fair=fair, galleries=galleries)
     else:
         return "Failed to retrieve fair information."
+
+    #     gallery_response = requests.get(gallery_url, headers=headers)
+
+    #     if gallery_response.status_code == 200:
+    #         gallery_data = gallery_response.json()
+    #         galleries = gallery_data["_embedded"]["shows"]
+
+    #         return render_template('fairs.html', fair=fair, galleries=galleries)
+    #     else:
+    #         return "Failed to retrieve gallery information."
+    # else:
+    #     return "Failed to retrieve fair information."
 
 
 @app.route('/show/<string:show_id>')
@@ -399,6 +396,11 @@ def show(show_id):
         if artworks_response.status_code == 200:
             artworks_data = artworks_response.json()
             artworks = artworks_data["_embedded"]["artworks"]
+
+            if artworks:
+                print("Artworks:", artworks)  # Check the artworks data
+            else:
+                print("No artworks found for the show.")
 
             return render_template('show.html', show=show, artworks=artworks)
         else:
