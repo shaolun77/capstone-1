@@ -10,27 +10,9 @@
       <div class="col-9">
         <ul class="user-stats nav nav-pills">
           <li class="stat">
-            <p class="small">Messages</p>
+            <p class="small">Favorite Galleries</p>
             <h4>
-              <a href="/users/{{ user.id }}">{{ user.messages | length }}</a>
-            </h4>
-          </li>
-          <li class="stat">
-            <p class="small">Following</p>
-            <h4>
-              <a href="/users/{{ user.id }}/following">{{ user.following | length }}</a>
-            </h4>
-          </li>
-          <li class="stat">
-            <p class="small">Followers</p>
-            <h4>
-              <a href="/users/{{ user.id }}/followers">{{ user.followers | length }}</a>
-            </h4>
-          </li>
-          <li class="stat">
-            <p class="small">Likes</p>
-            <h4>
-              <a href="/users/{{user.id}}/likes">{{ user.likes|length }}</a>
+              <a href="/users/{{user.id}}/likes">{{ user.favorites|length }}</a>
             </h4>
           </li>
           <div class="ml-auto">
@@ -38,17 +20,6 @@
             <a href="/users/profile" class="btn btn-outline-secondary">Edit Profile</a>
             <form method="POST" action="/users/delete" class="form-inline">
               <button class="btn btn-outline-danger ml-2">Delete Profile</button>
-            </form>
-            {% elif g.user %}
-            {% if g.user.is_following(user) %}
-            <form method="POST" action="/users/stop-following/{{ user.id }}">
-              <button class="btn btn-primary">Unfollow</button>
-            </form>
-            {% else %}
-            <form method="POST" action="/users/follow/{{ user.id }}">
-              <button class="btn btn-outline-primary">Follow</button>
-            </form>
-            {% endif %}
             {% endif %}
           </div>
         </ul>
@@ -63,6 +34,16 @@
     <p>{{ user.bio }}</p>
     <p class="user-location"><span class="fa fa-map-marker"></span> {{ user.location }}</p>
   </div>
+
+  <div class="col-sm-9">
+    <h4>Favorite Galleries</h4>
+    <ul>
+      {% for favorite in user.favorites %}
+        <li>{{ favorite.gallery_name }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
 
   {% block user_details %}
   {% endblock %}

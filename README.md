@@ -18,14 +18,12 @@ In brief, outline your approach to creating your project (knowing that you may n
 Art fair assistant: 
 Find out what galleries, artists and artworks are being offered at art fairs (tracked by Artsy)
 
-Users can search for an upcoming art fair (dropdown menu)
-Route: Lists all the galleries participating, and the artists they are showing
-Route: Lists artists participating, and the galleries they are showing with (some artists might be showing with more than one gallery)
-Route: Lists and shows artworks by each artist with information
+Users are presented with current art fairs.  
+Route: Lists current art fairs and descriptions for each
+Route: Lists the galleries that are showing at each fair, and allow users to favorite galleries
 
-
-Users can login 
-Can add artworks to a list of favorites.
+Users can login.
+Route: User page shows their favorited galleries. 
 
 Schema image: 
 
@@ -33,4 +31,14 @@ Schema image:
 
 API: Artsy
 https://developers.artsy.net/v1/
+
+Update June 4/23: 
+
+I had to adjust my proposal to not include artworks, because that information was not made available to me from the Artsy API. 
+
+Instead of favoriting artworks, I let the users login and favorite certain galleries. There are still a few bugs to work out with editing user profiles, but the main routes are working at the moment to let a user sign up for an account, choose an art fair, list galleries in the fair, and favorite certain galleries. 
+
+The user information, gallery information and user favorites are saved in separate database tables.
+
+I could have made this a bit more smooth if I used javascript (no page refresh), but I opted to use only python and html for this project. 
 

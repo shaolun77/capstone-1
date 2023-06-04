@@ -56,7 +56,7 @@ class Gallery(db.Model):
 
     __tablename__ = 'galleries'
 
-    gallery_id = db.Column(db.String, primary_key=True)
+    gallery_id = db.Column(db.String(255), primary_key=True)
     gallery_name = db.Column(db.String(255), nullable=False)
     gallery_location = db.Column(db.String(255))
     # art_fair_id = db.Column(db.String, db.ForeignKey('art_fairs.fair_id'))
@@ -92,7 +92,8 @@ class User(db.Model):
         db.Text,
         default="/static/images/warbler-hero.jpg"
     )
-    # favorites = db.relationship('Favorite', backref='user')
+
+    favorites = db.relationship('Favorite', backref='user')
 
     # likes = db.relationship(
     #     'Message',
@@ -108,9 +109,9 @@ class User(db.Model):
         hashed_pwd = bcrypt.generate_password_hash(password).decode('UTF-8')
 
         user = User(
-            username=username,
-            email=email,
-            password=hashed_pwd,
+            user_name=username,
+            user_email=email,
+            user_password=hashed_pwd,
             image_url=image_url,
         )
 
@@ -140,15 +141,16 @@ class User(db.Model):
 # this user id favorited this artwork id
 
 
-# class Favorite(db.Model):
+class Favorite(db.Model):
+    """Favorite galleries for a user."""
 
-#     __tablename__ = 'favorites'
+    __tablename__ = 'favorites'
 
-#     favorite_id = db.Column(db.Integer, primary_key=True)
-#     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
-#     artwork_id = db.Column(db.Integer, db.ForeignKey('artworks.artwork_id'))
-#     artwork = db.relationship('Artwork', backref='favorites')
-#     user = db.relationship('User', backref='favorites')
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey(
+        'users.user_id'), nullable=False)
+    gallery_id = db.Column(db.String, nullable=False)
+    gallery_name = db.Column(db.String(255), nullable=False)
 
 
 def connect_db(app):

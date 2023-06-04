@@ -5,15 +5,31 @@
   <p>{{ fair.about }}</p>
   <p>Start Date: {{ fair['start_at'] }}</p>
   <p>End Date: {{ fair['end_at'] }}</p>
-  
-  
+
   <h2>Participating Galleries</h2>
-  {% for gallery in galleries %}
-    <div class="gallery">
-      {% set partner_id = gallery._links.partner.href.split('/')[-1] %}
-      <h3><a href="/show/{{ gallery.id }}">{{ gallery.name }}</a></h3>
-    </div>
-    
+  <ul>
+    {% for gallery in galleries %}
+      <li>
+        <div class="gallery" style="display: flex; align-items: center;">
+          <form action="/favorites" method="POST" class="favorite-form">
+            <input type="hidden" name="gallery_id" value="{{ gallery.id }}">
+            <button class="btn btn-sm btn-primary" type="submit">
+              {% if gallery.id in favorited_galleries %}
+                <i class="fa fa-star" style="font-size: 12px; color: gold;"></i>
+              {% else %}
+                <i class="fa fa-star" style="font-size: 12px;"></i>
+              {% endif %}
+            </button>
+          </form>
+          <h3 style="margin-left: 10px;">{{ gallery.name }}</h3>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}
+
+
+
     <!-- 
     <div class="gallery">
       <h3><a href="/galleries/{{ gallery['id'] }}">{{ gallery['name'] }}</a></h3>
@@ -25,7 +41,3 @@
         <img src="{{ gallery['_links']['images']['href'] }}" alt="{{ gallery['name'] }}">
       
       -->
-  
-  {% endfor %}
-{% endblock %}
-

@@ -6,7 +6,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, UserEditForm, LoginForm
-from models import db, connect_db, User, Fair, Gallery
+from models import db, connect_db, User, Favorite, Gallery
 
 CURR_USER_KEY = "curr_user"
 
@@ -19,7 +19,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
-app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
 toolbar = DebugToolbarExtension(app)
 
@@ -49,7 +49,7 @@ def add_user_to_g():
 def do_login(user):
     """Log in user."""
 
-    session[CURR_USER_KEY] = user.id
+    session[CURR_USER_KEY] = user.user_id
 
 
 def do_logout():
@@ -82,10 +82,13 @@ def signup():
                 email=form.email.data,
                 image_url=form.image_url.data or User.image_url.default.arg,
             )
+            db.session.add(user)  # Add the user to the session
             db.session.commit()
 
         except IntegrityError as e:
-            flash("Username already taken", 'danger')
+            db.session.rollback()  # Rollback the session to avoid inconsistent state
+            print(str(e))  # Print the error message for debugging
+            flash("Username or email already taken", 'danger')
             return render_template('users/signup.html', form=form)
 
         do_login(user)
@@ -108,7 +111,7 @@ def login():
 
         if user:
             do_login(user)
-            flash(f"Hello, {user.username}!", "success")
+            flash(f"Hello, {user.user_name}!", "success")
             return redirect("/")
 
         flash("Invalid credentials.", 'danger')
@@ -151,6 +154,35 @@ def users_show(user_id):
 #     user = User.query.get_or_404(user_id)
 #     return render_template('users/likes.html', user=user, likes=user.likes)
 
+@app.route('/favorites', methods=['POST'])
+def handle_favorite():
+    print("Handle Favorite function is being called.")
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    gallery_id = request.form.get('gallery_id')
+    gallery = Gallery.query.get(gallery_id)
+
+    if not gallery:
+        return "Gallery not found."
+
+    favorite = Favorite.query.filter_by(
+        user_id=g.user.user_id, gallery_name=gallery.gallery_name
+    ).first()
+
+    if favorite:
+        # If the gallery is already favorited, remove it from favorites
+        db.session.delete(favorite)
+    else:
+        # If the gallery is not favorited, add it to favorites
+        favorite = Favorite(user_id=g.user.user_id, gallery_id=gallery.gallery_id,
+                            gallery_name=gallery.gallery_name)
+        db.session.add(favorite)
+
+    db.session.commit()
+
+    return redirect(request.referrer)
 
 # @app.route('/messages/<int:message_id>/like', methods=['POST'])
 # def add_like(message_id):
@@ -176,7 +208,7 @@ def users_show(user_id):
 #     return redirect("/")
 
 
-@app.route('/users/profile', methods=["GET", "POST"])
+@ app.route('/users/profile', methods=["GET", "POST"])
 def edit_profile():
     """Update profile for current user."""
 
@@ -203,7 +235,7 @@ def edit_profile():
     return render_template('users/edit.html', form=form, user_id=user.id)
 
 
-@app.route('/users/delete', methods=["POST"])
+@ app.route('/users/delete', methods=["POST"])
 def delete_user():
     """Delete user."""
 
@@ -279,13 +311,13 @@ def get_fairs():
     return []
 
 
-@app.route('/')
+@ app.route('/')
 def homepage():
     """Show homepage:
 
     - call the get_fairs function and seed the database
-    - anon users: list of art fairs 
-    - logged in: below list of art fairs is a list of their favorited artworks. 
+    - anon users: list of art fairs
+    - logged in: below list of art fairs is a list of their favorited artworks.
 
     """
     fairs = get_fairs()
@@ -310,17 +342,17 @@ def homepage():
     #     return render_template('home-anon.html')
 
 
-@app.errorhandler(404)
+@ app.errorhandler(404)
 def page_not_found(e):
     """404 NOT FOUND page."""
 
     return render_template('404.html'), 404
 
 ##############################################################################
-# Art Fair and SHow pages
+# Art Fair and Show pages
 
 
-@app.route('/fairs/<string:fair_id>')
+@ app.route('/fairs/<string:fair_id>')
 def art_fair(fair_id):
     """Show specific art fair:
 
@@ -344,21 +376,69 @@ def art_fair(fair_id):
 
         # Construct the gallery API URL with the fair_id
         gallery_url = f"https://api.artsy.net/api/shows?fair_id={fair_id}"
-        galleries = []
+        gallery_response = requests.get(gallery_url, headers=headers)
 
-        while gallery_url:
-            gallery_response = requests.get(gallery_url, headers=headers)
+        if gallery_response.status_code == 200:
+            gallery_data = gallery_response.json()
+            galleries = gallery_data["_embedded"]["shows"]
 
-            if gallery_response.status_code == 200:
-                gallery_data = gallery_response.json()
-                galleries.extend(gallery_data["_embedded"]["shows"])
-                gallery_url = gallery_data["_links"]["next"]["href"] if "next" in gallery_data["_links"] else None
-            else:
-                return "Failed to retrieve gallery information."
+            # Store gallery information in the database
+            for gallery in galleries:
+                gallery_id = gallery["id"]
+                gallery_name = gallery["name"]
+                gallery_location = gallery.get("location", "")
 
-        return render_template('fairs.html', fair=fair, galleries=galleries)
+                # Check if the gallery already exists in the database
+                existing_gallery = Gallery.query.filter_by(
+                    gallery_id=gallery_id).first()
+
+                if existing_gallery:
+                    # Gallery already exists, no need to insert it again
+                    continue
+
+                # Create a new Gallery object
+                new_gallery = Gallery(
+                    gallery_id=str(gallery_id),
+                    gallery_name=gallery_name,
+                    gallery_location=gallery_location
+                )
+
+                # Add the new gallery to the session
+                db.session.add(new_gallery)
+
+            # Commit the changes to the database
+            db.session.commit()
+
+            favorited_galleries = []
+            if g.user:
+                favorited_galleries = Favorite.query.filter_by(
+                    user_id=g.user.user_id).all()
+                favorited_galleries = [
+                    favorite.gallery_id for favorite in favorited_galleries]
+
+            return render_template('fairs.html', fair=fair, galleries=galleries, favorited_galleries=favorited_galleries)
+
+            # return render_template('fairs.html', fair=fair, galleries=galleries)
+        else:
+            return "Failed to retrieve gallery information."
     else:
         return "Failed to retrieve fair information."
+
+    #     galleries = []
+
+    #     while gallery_url:
+    #         gallery_response = requests.get(gallery_url, headers=headers)
+
+    #         if gallery_response.status_code == 200:
+    #             gallery_data = gallery_response.json()
+    #             galleries.extend(gallery_data["_embedded"]["shows"])
+    #             gallery_url = gallery_data["_links"]["next"]["href"] if "next" in gallery_data["_links"] else None
+    #         else:
+    #             return "Failed to retrieve gallery information."
+
+    #     return render_template('fairs.html', fair=fair, galleries=galleries)
+    # else:
+    #     return "Failed to retrieve fair information."
 
     #     gallery_response = requests.get(gallery_url, headers=headers)
 
@@ -373,7 +453,7 @@ def art_fair(fair_id):
     #     return "Failed to retrieve fair information."
 
 
-@app.route('/show/<string:show_id>')
+@ app.route('/show/<string:show_id>')
 def show(show_id):
 
     show_url = f"https://api.artsy.net/api/shows/{show_id}"
@@ -408,61 +488,6 @@ def show(show_id):
     else:
         return "Failed to retrieve show information."
 
-    # @app.route('/galleries/<string:gallery_id>')
-    # def art_gallery(gallery_id):
-    #     """Show specific gallery:
-
-    #     - List the artworks that the gallery is showing.
-    #     - Allow users to favorite them.
-    #     """
-
-    #     # Construct the partner API URL
-    #     partner_url = f"https://api.artsy.net/api/partners/{gallery_id}"
-    #     headers = {
-    #         "Accept": "application/vnd.artsy-v2+json",
-    #         "X-Xapp-Token": API_KEY
-    #     }
-    #     # Make the partner API request
-    #     partner_response = requests.get(partner_url, headers=headers)
-
-    #     if partner_response.status_code == 200:
-    #         partner_data = partner_response.json()
-    #         partner = partner_data
-
-    #         print(partner)
-
-    #         # Extract the fair ID from the shows information
-    #         shows_url = partner['_links']['shows']['href']
-    #         shows_response = requests.get(shows_url, headers=headers)
-
-    #         if shows_response.status_code == 200:
-    #             shows_data = shows_response.json()
-    #             first_show = shows_data['_embedded']['shows'][0]
-    #             fair_id = first_show['_links']['fair']['href'].split('/')[-1]
-
-    #             # Construct the shows API URL with the fair_id and partner_id
-    #             shows_url = f"https://api.artsy.net/api/shows?fair_id={fair_id}&partner_id={gallery_id}"
-
-    #             # Make the shows API request
-    #             shows_response = requests.get(shows_url, headers=headers)
-
-    #             if shows_response.status_code == 200:
-    #                 shows_data = shows_response.json()
-    #                 shows = shows_data['_embedded']['shows']
-
-    #                 print(shows)
-
-    #                 return render_template('galleries.html', partner=partner, shows=shows)
-    #             else:
-    #                 # Handle error when retrieving show information
-    #                 return "Failed to retrieve show information."
-    #         else:
-    #             # Handle error when retrieving shows information
-    #             return "Failed to retrieve shows information."
-    #     else:
-    #         # Handle error when retrieving partner information
-    #         return "Failed to retrieve gallery information."
-
     ##############################################################################
     # Turn off all caching in Flask
     #   (useful for dev; in production, this kind of stuff is typically
@@ -471,7 +496,7 @@ def show(show_id):
     # https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
 
 
-@app.after_request
+@ app.after_request
 def add_header(req):
     """Add non-caching headers on every request."""
 

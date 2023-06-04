@@ -42,8 +42,8 @@
       <li><a href="/login">Log in</a></li>
       {% else %}
       <li>
-        <a href="/users/{{ g.user.id }}">
-          <img src="{{ g.user.image_url }}" alt="{{ g.user.username }}">
+        <a href="/users/{{ g.user.user_id }}">
+          <img src="{{ g.user.image_url }}" alt="{{ g.user.user_name }}">
         </a>
       </li>
       <li><a href="/logout">Log out</a></li>
